@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:jwt_decode/jwt_decode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/firebase_auth_service.dart';
@@ -53,6 +54,54 @@ class _LoginScreenState extends State<LoginScreen> {
       return null;
     } else {
       return 'Password must be of length 6 or more';
+    }
+  }
+
+  Future<void> login() async {
+    formKey.currentState?.save();
+    if (formKey.currentState!.validate()) {
+      try {
+        print('valid');
+        final name = nameController.text;
+        final email = emailController.text;
+        final password = passwordController.text;
+        print('name: $name');
+        print('email: $email');
+        // print('password: $password');
+
+        // print('user logout; ${userCred.user!.uid}');
+
+        CustomLoader.showMyLoader(context);
+        final userCred = await firebaseAuthService.signInUser(
+          email: email,
+          password: password,
+        );
+
+        Navigator.pop(context);
+        final isEmailVerified = userCred.user!.emailVerified;
+        print("is email verified : $isEmailVerified");
+        if (!isEmailVerified) {
+          await userCred.user!.sendEmailVerification();
+          showSnackBar(
+              message: 'Your email is not verified,please verify your email. ',
+              context: context,
+              backgroundColor: Colors.white);
+          return;
+        }
+
+        SharedPreferences sp = await SharedPreferences.getInstance();
+        final token = await userCred.user!.getIdToken();
+        print('token:$token');
+        sp.setString('Token', token);
+        final data = Jwt.parseJwt(token);
+
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      } on FirebaseAuthException catch (e) {
+        print('firebase exception :${e.message}');
+        Navigator.pop(context);
+      }
+    } else {
+      print('not valid');
     }
   }
 
@@ -125,52 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           vertical: 20,
                           horizontal: 30,
                         ),
-                        onPressed: () async {
-                          formKey.currentState?.save();
-                          if (formKey.currentState!.validate()) {
-                            try {
-                              print('valid');
-                              final name = nameController.text;
-                              final email = emailController.text;
-                              final password = passwordController.text;
-                              print('name: $name');
-                              print('email: $email');
-                              // print('password: $password');
-                              // final userCred = await firebaseAuthService.signInUser(
-                              //   email: email,
-                              //   password: password,
-                              // );
-
-                              // print('user logout; ${userCred.user!.uid}');
-
-                              CustomLoader.showMyLoader(context);
-
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Builder(builder: (context) {
-                                    return Text(
-                                      "Login succesfullty",
-                                      style: TextStyle(
-                                          color: Colors.deepPurpleAccent),
-                                    );
-                                  }),
-                                  backgroundColor: Colors.white,
-                                ),
-                              );
-                              SharedPreferences sp =
-                                  await SharedPreferences.getInstance();
-
-                              Navigator.pushNamedAndRemoveUntil(
-                                  context, '/home', (route) => false);
-                            } on FirebaseAuthException catch (e) {
-                              print('firebase exception :${e.message}');
-                              Navigator.pop(context);
-                            }
-                          } else {
-                            print('not valid');
-                          }
-                        },
+                        onPressed: login,
                         child: Text(
                           'LOGIN',
                           style: TextStyle(
@@ -218,6 +222,23 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void showSnackBar(
+      {required String message,
+      required BuildContext context,
+      Color? backgroundColor}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Builder(builder: (context) {
+          return Text(
+            "Login succesfullty",
+            style: TextStyle(color: Colors.deepPurpleAccent),
+          );
+        }),
+        backgroundColor: backgroundColor ?? Colors.white,
       ),
     );
   }

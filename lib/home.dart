@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:to_do_copy/features/authentication/screens/login_screen.dart';
 import 'package:to_do_copy/features/dashboard/screens/home_page.dart';
 import 'package:to_do_copy/features/dashboard/widgets/user_details_card.dart';
+import 'package:to_do_copy/splash/splash_screen.dart';
 
 import 'features/authentication/screens/register_screen.dart';
 
@@ -29,9 +30,12 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         '/login': (ctx) {
           return LoginScreen();
+        },
+        '/splash': (ctx) {
+          return SplashScreen();
         }
       },
-      initialRoute: '/register',
+      initialRoute: '/splash',
     );
   }
 }
